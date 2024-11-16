@@ -1,7 +1,7 @@
 require("sstrict")
 
 local function try(src, expect, msg)
-  local res, err = pcall(loadstring, src)
+  local res, err = pcall(loadstring or load, src)
   if type(err) ~= "string" then
     err = nil
   end
@@ -72,7 +72,11 @@ try([[return "житното зърно,"]], true)
 -- assignment values count
 try([[local a,b=1,2,3 return a]], false, "too many values in assignment")
 try([[local a,b,c=1,2 return a]], true)
-try([[local a,b,c=unpack(_G) return a]], true)
+if _VERSION < "Lua 5.2" then
+  try([[local a,b,c=unpack(_G) return a]], true)
+else
+  try([[local a,b,c=table.unpack(_G) return a]], true)
+end
 
 -- constant condition
 try([[if true then print('ok') end]], false, "constant if/else condition")

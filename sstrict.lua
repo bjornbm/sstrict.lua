@@ -949,7 +949,7 @@ function api.parseFile(path)
   return false
 end
 
-local _loadstring = loadstring
+local _loadstring = loadstring or load
 function api.loadstring(source, ...)
   api.parse(source, ...)
   return _loadstring(source, ...)
@@ -989,7 +989,8 @@ end
 
 api.panic = true
 
-loadstring = api.loadstring
+loadstring = loadstring and api.loadstring  -- Lua 5.1
+load = load and api.loadstring  -- Lua 5.2+
 loadfile = api.loadfile
 dofile = api.dofile
 require = api.require
