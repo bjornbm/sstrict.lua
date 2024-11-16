@@ -1,3 +1,4 @@
+local lua52plus = _VERSION >= "Lua 5.2" or nil
 local lua54plus = _VERSION >= "Lua 5.4" or nil
 
 local tokens =
@@ -24,6 +25,7 @@ local tokens =
   -- identifier, keyword
   ident = "[_%a][_%w]*",
   attrib = lua54plus and "<[_%a][_%w]*>",  -- Lua 5.4+ (in Lua 5.4 only <const> and <close> are valid)
+  label = lua52plus and "::[_%a][_%w]*::",  -- Lua 5.2+
   -- comment
   comment = "%-%-([^\n%[][^\n]*)",
   comment2 = "%-%-(%[[^\n%[][^\n]*)",
@@ -155,7 +157,7 @@ end
 
 local lookup =
 {
-  keyword = {"and","break","do","else","elseif","end","false","for","function","if","in","local","nil","not","or","repeat","return","then","true","until","while"},
+  keyword = {"and","break","do","else","elseif","end","false","for","function","if","in","local","nil","not","or","repeat","return","then","true","until","while", lua52plus and "goto"},
   number = {"int","intex","float","floatex","hex","hex64","int64","hexp1","hexp2"},
   string = {"squo","esquo","dquo","edquo","mstr","mstr1","mstr2","mstr3"},
   padding = {"space","comment","comment2","ecomment","mc","mc1","mc2","mc3"},
@@ -168,7 +170,7 @@ local lookup =
   expression = {"lbracket","lparen","ident","nil","false","true","function","number","string","arg","not","minus","hash"},
   pexpression = {"colon","lparen","lbracket","string"},
   varaccess = {"lbrace","dot"},
-  stat = {"ident","lparen","do","while","repeat","if","for","function","local"},
+  stat = {"ident","lparen","do","while","repeat","if","for","function","local", lua52plus and "goto", lua52plus and "label"},
 }
 
 for k, list in pairs(lookup) do
@@ -657,6 +659,19 @@ function stx.localdef()
   end
 end
 
+function stx.gotostmt()
+  par.expect("goto")
+  par.expect("ident")  -- Lua will complain (statically) if label doesn't exist
+end
+
+function stx.label()
+  local id = par.expect("label")
+  par.define(id, "label")
+  -- TODO: should maybe check that label is referenced by a goto
+  -- (no unused labels), but this is not trivial since the goto can
+  -- come either before or after the label.
+end
+
 function stx.stat()
   if par.check("ident") or par.check("lparen") then
     stx.assignorcall()
@@ -674,6 +689,10 @@ function stx.stat()
     stx.functiondef()
   elseif par.check("local") then
     stx.localdef()
+  elseif lua52plus and par.check("label") then
+    stx.label()
+  elseif lua52plus and par.check("goto") then
+    stx.gotostmt()
   end
 end
 
