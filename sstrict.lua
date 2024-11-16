@@ -1,3 +1,5 @@
+local lua54plus = _VERSION >= "Lua 5.4" or nil
+
 local tokens =
 {
   -- number
@@ -21,6 +23,7 @@ local tokens =
   mstr3 = "%[==%[(.-)%]===%]",
   -- identifier, keyword
   ident = "[_%a][_%w]*",
+  attrib = lua54plus and "<[_%a][_%w]*>",  -- Lua 5.4+ (in Lua 5.4 only <const> and <close> are valid)
   -- comment
   comment = "%-%-([^\n%[][^\n]*)",
   comment2 = "%-%-(%[[^\n%[][^\n]*)",
@@ -462,6 +465,11 @@ function stx.namelist(kind)
   local n = {}
   while true do
     local id = par.expect("ident")
+    if kind == "variable" and lua54plus and par.check("attrib") then
+      -- no need to be do anything since Lua itself statically analyses
+      -- that attributes are not violated.
+      par.nextsym()
+    end
     for i = 1, #n do
       if n[i].capture == id.capture and id.capture ~= '_' then
         api.error("duplicate "..kind.." '"..id.capture.."'")

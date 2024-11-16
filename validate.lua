@@ -88,3 +88,12 @@ try([[return { ['a'] = 1, a = 1 }]], false, "duplicate field 'a' in table constr
 try([[return { [1] = 1, 1 }]], false, "duplicate field '1' in table constructor")
 try([[return { [1+2^3*4%5] = 1, 1,2,3 }]], false, "duplicate field '3' in table constructor")
 try([[return { ['a' .. 4]=1, a4=1 }]], false, "duplicate field 'a4' in table constructor")
+
+-- attributes introduced in Lua 5.4
+if _VERSION >= "Lua 5.4" then
+  try([[local a<const> = 1 return a]], true)
+  try([[local a <const> = 1 return a]], true)
+  try([[local a <const>,b=1,2 return a]], true)
+  try([[local a,b <const> =1,2 return a]], true)
+  try([[local a<const>,b <const> =1,2 return a]], true)
+end
