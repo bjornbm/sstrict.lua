@@ -1017,7 +1017,7 @@ end
 api.panic = true
 
 loadstring = loadstring and api.loadstring  -- Lua 5.1
-load = load and api.loadstring  -- Lua 5.2+
+load = loadstring and load or api.loadstring  -- Lua 5.2+
 loadfile = api.loadfile
 dofile = api.dofile
 require = api.require
