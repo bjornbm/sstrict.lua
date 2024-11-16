@@ -2,7 +2,9 @@ local lua52plus = _VERSION >= "Lua 5.2" or nil
 local lua53plus = _VERSION >= "Lua 5.3" or nil
 local lua54plus = _VERSION >= "Lua 5.4" or nil
 
--- bitwise operators will error on Lua <5.3 so we hide them behind load.
+-- floor division and bitwise operators will error on Lua <5.3 so we hide
+-- them behind load.
+local floordivide = lua53plus and assert(load[[return function(a,b) return a//b end]])()
 local bitand = lua53plus and assert(load[[return function(a,b) return a&b end]])()
 local bitor = lua53plus and assert(load[[return function(a,b) return a|b end]])()
 local bitxor = lua53plus and assert(load[[return function(a,b) return a~b end]])()
@@ -61,6 +63,7 @@ local tokens =
   caret = "%^",
   multiply = "%*",
   divide = "/",
+  floordivide = lua53plus and "//",  -- Lua 5.3+
   lt = "<",
   gt = ">",
   dot = "%.",
@@ -180,6 +183,7 @@ local lookup =
 
   uniop = {"not","minus","hash", lua53plus and "bitxor"},
   binop = {"and","or","plus","minus","divide","multiply","percent","caret","gt","lt","dot","cat","rop",
+    lua53plus and "floordivide",
     lua53plus and "bitand",
     lua53plus and "bitor",
     lua53plus and "bitxor",
@@ -382,7 +386,8 @@ end
 
 function stx.muldivexp()
   local a = stx.unaryexp()
-  while par.check("divide") or par.check("multiply") or par.check("percent") do
+  while par.check("divide") or par.check("multiply") or par.check("percent")
+      or lua53plus and par.check("floordivide") do
     local s = par.nextsym()
     local b = stx.unaryexp()
     a = par.runbinop(s, a, b)
@@ -882,6 +887,8 @@ local runop = {
   plus = function(a, b) return a+b end,
   minus = function(a, b) return a-b end,
   cat = function(a, b) return a..b end,
+  -- Lua 5.3+ operators
+  floordivide = floordivide,  -- nil if Lua <5.3
   bitand = bitand,  -- nil if Lua <5.3
   bitor = bitor,  -- nil if Lua <5.3
   bitxor = bitxor,  -- nil if Lua <5.3
