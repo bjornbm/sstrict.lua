@@ -1,5 +1,14 @@
 local lua52plus = _VERSION >= "Lua 5.2" or nil
+local lua53plus = _VERSION >= "Lua 5.3" or nil
 local lua54plus = _VERSION >= "Lua 5.4" or nil
+
+-- bitwise operators will error on Lua <5.3 so we hide them behind load.
+local bitand = lua53plus and assert(load[[return function(a,b) return a&b end]])()
+local bitor = lua53plus and assert(load[[return function(a,b) return a|b end]])()
+local bitxor = lua53plus and assert(load[[return function(a,b) return a~b end]])()
+local bitlshift = lua53plus and assert(load[[return function(a,b) return a<<b end]])()
+local bitrshift = lua53plus and assert(load[[return function(a,b) return a>>b end]])()
+local bitnot = lua53plus and assert(load[[return function(a) return ~a end]])()
 
 local tokens =
 {
@@ -58,6 +67,12 @@ local tokens =
   cat = "%.%.",
   arg = "%.%.%.",
   rop = "[~><=]=",
+  -- bitwise operators for Lua 5.3+
+  bitand = lua53plus and "&",
+  bitor = lua53plus and "|",
+  bitxor = lua53plus and "~",  -- also bitwise not
+  bitlshift = lua53plus and "<<",
+  bitrshift = lua53plus and ">>",
   -- space
   space = "%s",
 }
@@ -163,11 +178,16 @@ local lookup =
   padding = {"space","comment","comment2","ecomment","mc","mc1","mc2","mc3"},
   sep = {"comma","semicolon"},
 
-  uniop = {"not","minus","hash"},
-  binop = {"and","or","plus","minus","divide","multiply","percent","caret","gt","lt","dot","cat","rop"},
+  uniop = {"not","minus","hash", lua53plus and "bitxor"},
+  binop = {"and","or","plus","minus","divide","multiply","percent","caret","gt","lt","dot","cat","rop",
+    lua53plus and "bitand",
+    lua53plus and "bitor",
+    lua53plus and "bitxor",
+    lua53plus and "bitlshift",
+    lua53plus and "bitrshift",},
   literal = {"nil","false","true","number","string","arg"},
   
-  expression = {"lbracket","lparen","ident","nil","false","true","function","number","string","arg","not","minus","hash"},
+  expression = {"lbracket","lparen","ident","nil","false","true","function","number","string","arg","not","minus","hash", lua53plus and "bitxor"},
   pexpression = {"colon","lparen","lbracket","string"},
   varaccess = {"lbrace","dot"},
   stat = {"ident","lparen","do","while","repeat","if","for","function","local", lua52plus and "goto", lua52plus and "label"},
@@ -352,6 +372,8 @@ function stx.unaryexp()
       a = -a
     elseif ta == "boolean" and s.token == "not" then
       a = not a
+    elseif lua53plus and ta == "number" and s.token == "bitxor" then
+      a = bitnot(a)
     end
     return a
   end
@@ -388,11 +410,51 @@ function stx.concatexp()
   return a
 end
 
-function stx.relational()
+function stx.bitshiftexp()
   local a = stx.concatexp()
-  while par.check("rop") or par.check("lt") or par.check("gt") do
+  while par.check("bitlshift") or par.check("bitrshift") do
     local s = par.nextsym()
     local b = stx.concatexp()
+    a = par.runbinop(s, a, b)
+  end
+  return a
+end
+
+function stx.bitandexp()
+  local a = stx.bitshiftexp()
+  while par.check("bitand") do
+    local s = par.nextsym()
+    local b = stx.bitshiftexp()
+    a = par.runbinop(s, a, b)
+  end
+  return a
+end
+
+function stx.bitxorexp()
+  local a = stx.bitandexp()
+  while par.check("bitxor") do
+    local s = par.nextsym()
+    local b = stx.bitandexp()
+    a = par.runbinop(s, a, b)
+  end
+  return a
+end
+
+function stx.bitorexp()
+  local a = stx.bitxorexp()
+  while par.check("bitor") do
+    local s = par.nextsym()
+    local b = stx.bitxorexp()
+    a = par.runbinop(s, a, b)
+  end
+  return a
+end
+
+function stx.relational()
+  local a = stx.bitorexp()
+  while par.check("rop") or par.check("lt") or par.check("gt") do
+    local s = par.nextsym()
+    local b = stx.bitorexp()
     a = par.runbinop(s, a, b)
   end
   return a
@@ -820,6 +882,11 @@ local runop = {
   plus = function(a, b) return a+b end,
   minus = function(a, b) return a-b end,
   cat = function(a, b) return a..b end,
+  bitand = bitand,  -- nil if Lua <5.3
+  bitor = bitor,  -- nil if Lua <5.3
+  bitxor = bitxor,  -- nil if Lua <5.3
+  bitlshift = bitlshift,  -- nil if Lua <5.3
+  bitrshift = bitrshift,  -- nil if Lua <5.3
 }
 
 function par.runbinop(t, a, b)

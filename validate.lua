@@ -95,6 +95,11 @@ if _VERSION >= "Lua 5.2" then
   try([[goto lbl ::lbl:: return 1]], true)  -- infinite loop
 end
 
+-- bitwise operators introduced in Lua 5.3
+if _VERSION >= "Lua 5.3" then
+  try([[return 1>>2&~3|4<<5~6]], true)
+end
+
 -- attributes introduced in Lua 5.4
 if _VERSION >= "Lua 5.4" then
   try([[local a<const> = 1 return a]], true)
