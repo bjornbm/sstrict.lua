@@ -951,13 +951,15 @@ end
 
 local _loadstring = loadstring
 function api.loadstring(source, ...)
-  api.parse(source, ...)
+  local res, err = pcall(api.parse, source, ...)
+  if not res then return res, err end
   return _loadstring(source, ...)
 end
 
 local _loadfile = loadfile
 function api.loadfile(path, ...)
-  api.parseFile(path, ...)
+  local res, err = pcall(api.parseFile, path, ...)
+  if not res then return res, err end
   return _loadfile(path, ...)
 end
 

@@ -1,18 +1,25 @@
 require("sstrict")
 
+local function fail(msg)
+  print("\nTEST FAILED")
+  if msg then print("Expected: " .. msg) end
+  os.exit(1)
+end
+
 local function try(src, expect, msg)
-  local res, err = pcall(loadstring, src)
-  if type(err) ~= "string" then
-    err = nil
-  end
-  print(err and "INVALID" or "VALID")
-  print(src)
-  if err then
-    assert(msg and err:match(msg), err)
+  local res, err = loadstring(src)
+  if res then
+    print("VALID")
+    print(src)
+    if msg then fail(msg) end  -- a failure was expected
+  else
+    print("INVALID")
+    print(src)
     print(err)
+    if not msg then fail("VALID") end  -- no failure was expected
+    if not err:match(msg) then fail(msg) end  -- wrong error
   end
   print("\n")
-  assert(res == expect, err or "TEST FAILED")
 end
 
 -- undeclared
