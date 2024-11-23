@@ -963,6 +963,18 @@ function api.loadfile(path, ...)
   return _loadfile(path, ...)
 end
 
+function api.load(func, ...)
+  local source = {}
+  for chunk in func do  -- load all chunks into memory
+    if type(chunk) ~= "string" then
+      return nil, "reader function must return a string"
+    end
+    if chunk == "" then break end
+    source[#source+1] = chunk  -- faster than .. when many chunks
+  end
+  return api.loadstring(table.concat(source), ...)
+end
+
 local _dofile = dofile
 function api.dofile(path, ...)
   api.parseFile(path)
@@ -997,6 +1009,7 @@ end
 
 api.panic = true
 
+load = api.load
 loadstring = api.loadstring
 loadfile = api.loadfile
 dofile = api.dofile
