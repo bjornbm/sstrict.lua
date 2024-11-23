@@ -56,7 +56,7 @@ try([[_G['q']={"1 \"2\"",""}]], true)
 try([[return (5+3)/3*.2]], true)
 try([[return 1^-2]], true)
 try([[return 1^(-2)^#{}^-2^3]], true)
-try("return [-----[ [--[boo]--] ]-----], 123, '\''", true)
+try("return [=====[ [==[boo]==] ]=====], 123, '\\''", true)
 try("-- ok [[ comment ]] -- ok", true)
 try('--["p"]={ img="123.png" },', true)
 try([=[
