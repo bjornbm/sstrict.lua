@@ -971,6 +971,12 @@ end
 
 local _require = require
 function api.require(rpath, ...)
+  if package.loaded[rpath] then
+    -- Don't reload loaded modules (consistent with require's behavior).
+    -- This will avoid slowing things down by repeating work.
+    -- Also, loading sstrict a second time fails!
+    return _require(rpath, ...)
+  end
   local path = rpath:gsub("%.", "/")
   local list = {}
   if love and love.filesystem then
